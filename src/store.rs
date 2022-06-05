@@ -4,7 +4,6 @@ use respo::{util, MaybeState, RespoAction, RespoStore, StatesTree};
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Store {
-  pub counted: i32,
   pub tasks: Vec<Task>,
   pub states: StatesTree,
 }
@@ -19,8 +18,6 @@ pub struct Task {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ActionOp {
-  Increment,
-  Decrement,
   StatesChange(Vec<String>, MaybeState),
   AddTask(String, String),
   RemoveTask(String),
@@ -42,12 +39,6 @@ impl RespoStore for Store {
   }
   fn update(&mut self, op: Self::Action) -> Result<(), String> {
     match op {
-      ActionOp::Increment => {
-        self.counted += 1;
-      }
-      ActionOp::Decrement => {
-        self.counted -= 1;
-      }
       ActionOp::StatesChange(path, new_state) => {
         self.states.set_in_mut(&path, new_state);
       }
