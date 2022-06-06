@@ -21,7 +21,7 @@ pub fn comp_task(
   states: &StatesTree,
   task: &Task,
 ) -> Result<RespoNode<ActionOp>, String> {
-  respo::util::log!("calling task function");
+  // respo::util::log!("calling task function");
 
   let task_id = task.id.to_owned();
   let task_id2 = task_id.clone();
@@ -33,7 +33,7 @@ pub fn comp_task(
   let state2 = state.clone();
 
   let on_toggle = move |_e, dispatch: DispatchFn<_>| -> Result<(), String> {
-    dispatch.run(ActionOp::ToggleTask(task_id.to_owned()))?;
+    dispatch.run(ActionOp::Toggle(task_id.to_owned()))?;
     Ok(())
   };
 
@@ -46,12 +46,12 @@ pub fn comp_task(
 
   let on_remove = move |e, dispatch: DispatchFn<_>| -> Result<(), String> {
     util::log!("remove button {:?}", e);
-    dispatch.run(ActionOp::RemoveTask(task_id2.to_owned()))?;
+    dispatch.run(ActionOp::Destroy(task_id2.to_owned()))?;
     Ok(())
   };
 
   let on_update = move |_e, dispatch: DispatchFn<_>| -> Result<(), String> {
-    dispatch.run(ActionOp::UpdateTask(task_id3.to_owned(), state2.draft.clone()))?;
+    dispatch.run(ActionOp::Save(task_id3.to_owned(), state2.draft.clone()))?;
     dispatch.run_empty_state(&cursor2)?;
     Ok(())
   };
@@ -59,26 +59,21 @@ pub fn comp_task(
   Ok(
     RespoNode::Component(
       "tasks".to_owned(),
-      vec![RespoEffect::new(vec![&task], move |args, effect_type, _el| -> Result<(), String> {
-        let t: Task = args[0].cast_into()?;
-        util::log!("effect {:?} task: {:?}", effect_type, t);
-        // TODO
-        Ok(())
-      })],
+      vec![],
       Box::new(
         div()
           .class_list(&[ui_row_middle(), style_task_container()])
           .add_children([
             div()
               .class(style_done_button())
-              .add_style(if task.done {
+              .add_style(if task.completed {
                 RespoStyle::default().background_color(CssColor::Blue).to_owned()
               } else {
                 RespoStyle::default()
               })
               .on_click(on_toggle)
               .to_owned(),
-            div().inner_text(task.content.to_owned()).to_owned(),
+            div().inner_text(task.title.to_owned()).to_owned(),
             span()
               .class_list(&[ui_center(), style_remove_button()])
               .inner_text("✕")

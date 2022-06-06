@@ -22,7 +22,7 @@ pub fn comp_todolist(
 
   let mut children: Vec<(RespoIndexKey, RespoNode<_>)> = vec![];
   for task in tasks {
-    if state.hide_done && task.done {
+    if state.hide_done && task.completed {
       continue;
     }
     // children.push((
