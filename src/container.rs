@@ -14,7 +14,6 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct AppState {
   now_showing: TodoFilter,
-  editing: Option<String>,
   new_todo: String,
 }
 
@@ -22,7 +21,6 @@ impl Default for AppState {
   fn default() -> Self {
     AppState {
       now_showing: TodoFilter::All,
-      editing: None,
       new_todo: "".to_owned(),
     }
   }

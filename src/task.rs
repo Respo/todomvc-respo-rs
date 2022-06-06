@@ -1,4 +1,4 @@
-use std::fmt::Debug;
+use std::{fmt::Debug, rc::Rc};
 
 use serde::{Deserialize, Serialize};
 
@@ -6,8 +6,11 @@ use respo::{
   button, div, input, li, space, span, static_styles,
   ui::{ui_button, ui_center, ui_input, ui_row_middle},
   util::{self},
-  CssColor, CssSize, DispatchFn, MemoCache, RespoEvent, RespoListenerFn, RespoNode, RespoStyle, StatesTree,
+  CssColor, CssSize, DispatchFn, MemoCache, RespoEffect, RespoEffectType, RespoEvent, RespoListenerFn, RespoNode, RespoStyle,
+  StatesTree,
 };
+use wasm_bindgen::JsCast;
+use web_sys::{Element, HtmlElement, Node};
 
 use super::store::*;
 
@@ -21,17 +24,20 @@ pub fn comp_task(
   states: &StatesTree,
   task: &Task,
   editing: bool,
+  on_edit: impl Fn(String, DispatchFn<ActionOp>) -> Result<(), String> + 'static,
+  on_cancel: impl Fn(DispatchFn<ActionOp>) -> Result<(), String> + 'static,
   // on_toggle: impl Fn() -> Result<(), String> + 'static,
   // on_destroy: impl Fn() -> Result<(), String> + 'static,
-  // on_edit: impl Fn() -> Result<(), String> + 'static,
   // on_save: impl Fn() -> Result<(), String> + 'static,
-  // on_cancel: impl Fn() -> Result<(), String> + 'static,
 ) -> Result<RespoNode<ActionOp>, String> {
-  respo::util::log!("calling task function");
+  // respo::util::log!("calling task function");
 
   let task_id = task.id.to_owned();
   let task_id2 = task_id.clone();
   let task_id3 = task_id.clone();
+  let task_id4 = task_id.clone();
+
+  let task2 = task.to_owned();
 
   let cursor = states.path();
   let cursor2 = cursor.clone();
@@ -43,7 +49,7 @@ pub fn comp_task(
     Ok(())
   };
 
-  let hanel_change = move |e, dispatch: DispatchFn<_>| -> Result<(), String> {
+  let handle_change = move |e, dispatch: DispatchFn<_>| -> Result<(), String> {
     if let RespoEvent::Input { value, .. } = e {
       dispatch.run_state(&cursor, TaskState { edit_text: value })?;
     }
@@ -55,34 +61,74 @@ pub fn comp_task(
     Ok(())
   };
 
-  let hadle_keydown = move |e, dispatch: DispatchFn<_>| -> Result<(), String> {
-    if let RespoEvent::Keyboard { key, .. } = e {
-      println!("key: {:?}", key);
+  let on_cancel2 = Rc::new(on_cancel);
+  let on_cancel3 = on_cancel2.to_owned();
+  let handle_submit = move |dispatch: DispatchFn<_>| -> Result<(), String> {
+    dispatch.run(ActionOp::Save(task_id4.to_owned(), state2.edit_text.clone()))?;
+    on_cancel2(dispatch)?;
+    Ok(())
+  };
+
+  let handle_submit2 = Rc::new(handle_submit);
+  let handle_submit3 = handle_submit2.clone();
+
+  let handle_blur = move |e, dispatch: DispatchFn<_>| -> Result<(), String> { handle_submit2(dispatch) };
+
+  let handle_keydown = move |e, dispatch: DispatchFn<_>| -> Result<(), String> {
+    if let RespoEvent::Keyboard { key, key_code, .. } = e {
+      if key_code == 13 {
+        handle_submit3(dispatch)?;
+      } else if key_code == 27 {
+        on_cancel3(dispatch)?;
+      }
     }
     Ok(())
   };
 
   let handle_edit = move |_e, dispatch: DispatchFn<_>| -> Result<(), String> {
     // TODO edit
+    on_edit(task_id3.to_owned(), dispatch.to_owned())?;
+    dispatch.run_state(
+      &cursor2,
+      TaskState {
+        edit_text: task2.title.clone(),
+      },
+    )?;
     Ok(())
   };
 
   Ok(
     RespoNode::Component(
       "tasks".to_owned(),
-      vec![],
+      vec![RespoEffect::new(
+        vec![&editing],
+        move |args, effect_type, el| -> Result<(), String> {
+          let is_editing: bool = args[0].cast_into()?;
+          if is_editing && effect_type == RespoEffectType::Updated {
+            el.dyn_ref::<Element>()
+              .unwrap()
+              .query_selector(".edit")
+              .unwrap()
+              .unwrap()
+              .dyn_ref::<HtmlElement>()
+              .unwrap()
+              .focus()
+              .expect("focus");
+          }
+          Ok(())
+        },
+      )],
       Box::new(
         li()
           .class_list(&[if editing { "editing" } else { "" }, if task.completed { "completed" } else { "" }])
           .add_children([
             div()
               .class("view")
-              .insert_attr("checked", task.completed.to_string())
               .add_children([
                 input()
                   .class("toggle")
                   .insert_attr("type", "checkbox")
-                  .insert_attr("checked", task.completed.to_string())
+                  .maybe_insert_attr("checked", if task.completed { Some("checked") } else { None })
                   .add_event([("change", RespoListenerFn::new(on_toggle))])
                   .to_owned(),
                 RespoNode::make_tag("label")
@@ -95,8 +141,11 @@ pub fn comp_task(
             input()
               .class("edit")
               .insert_attr("value", state.edit_text)
-              .on_input(hanel_change)
-              .add_event([("keydown", RespoListenerFn::new(hadle_keydown))])
+              .on_input(handle_change)
+              .add_event([
+                ("keydown", RespoListenerFn::new(handle_keydown)),
+                ("blur", RespoListenerFn::new(handle_blur)),
+              ])
               .to_owned(),
           ])
           .to_owned(),
