@@ -3,25 +3,31 @@ use std::fmt::Debug;
 use serde::{Deserialize, Serialize};
 
 use respo::{
-  button, div, input, space, span, static_styles,
+  button, div, input, li, space, span, static_styles,
   ui::{ui_button, ui_center, ui_input, ui_row_middle},
   util::{self},
-  CssColor, CssSize, DispatchFn, MemoCache, RespoEffect, RespoEvent, RespoNode, RespoStyle, StatesTree,
+  CssColor, CssSize, DispatchFn, MemoCache, RespoEvent, RespoListenerFn, RespoNode, RespoStyle, StatesTree,
 };
 
 use super::store::*;
 
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]
 struct TaskState {
-  draft: String,
+  edit_text: String,
 }
 
 pub fn comp_task(
   _memo_caches: MemoCache<RespoNode<ActionOp>>,
   states: &StatesTree,
   task: &Task,
+  editing: bool,
+  // on_toggle: impl Fn() -> Result<(), String> + 'static,
+  // on_destroy: impl Fn() -> Result<(), String> + 'static,
+  // on_edit: impl Fn() -> Result<(), String> + 'static,
+  // on_save: impl Fn() -> Result<(), String> + 'static,
+  // on_cancel: impl Fn() -> Result<(), String> + 'static,
 ) -> Result<RespoNode<ActionOp>, String> {
-  // respo::util::log!("calling task function");
+  respo::util::log!("calling task function");
 
   let task_id = task.id.to_owned();
   let task_id2 = task_id.clone();
@@ -37,22 +43,27 @@ pub fn comp_task(
     Ok(())
   };
 
-  let on_input = move |e, dispatch: DispatchFn<_>| -> Result<(), String> {
+  let hanel_change = move |e, dispatch: DispatchFn<_>| -> Result<(), String> {
     if let RespoEvent::Input { value, .. } = e {
-      dispatch.run_state(&cursor, TaskState { draft: value })?;
+      dispatch.run_state(&cursor, TaskState { edit_text: value })?;
     }
     Ok(())
   };
 
-  let on_remove = move |e, dispatch: DispatchFn<_>| -> Result<(), String> {
-    util::log!("remove button {:?}", e);
+  let on_destroy = move |e, dispatch: DispatchFn<_>| -> Result<(), String> {
     dispatch.run(ActionOp::Destroy(task_id2.to_owned()))?;
     Ok(())
   };
 
-  let on_update = move |_e, dispatch: DispatchFn<_>| -> Result<(), String> {
-    dispatch.run(ActionOp::Save(task_id3.to_owned(), state2.draft.clone()))?;
-    dispatch.run_empty_state(&cursor2)?;
+  let hadle_keydown = move |e, dispatch: DispatchFn<_>| -> Result<(), String> {
+    if let RespoEvent::Keyboard { key, .. } = e {
+      println!("key: {:?}", key);
+    }
+    Ok(())
+  };
+
+  let handle_edit = move |_e, dispatch: DispatchFn<_>| -> Result<(), String> {
+    // TODO edit
     Ok(())
   };
 
@@ -61,35 +72,32 @@ pub fn comp_task(
       "tasks".to_owned(),
       vec![],
       Box::new(
-        div()
-          .class_list(&[ui_row_middle(), style_task_container()])
+        li()
+          .class_list(&[if editing { "editing" } else { "" }, if task.completed { "completed" } else { "" }])
           .add_children([
             div()
-              .class(style_done_button())
-              .add_style(if task.completed {
-                RespoStyle::default().background_color(CssColor::Blue).to_owned()
-              } else {
-                RespoStyle::default()
-              })
-              .on_click(on_toggle)
-              .to_owned(),
-            div().inner_text(task.title.to_owned()).to_owned(),
-            span()
-              .class_list(&[ui_center(), style_remove_button()])
-              .inner_text("✕")
-              .on_click(on_remove)
-              .to_owned(),
-            div()
-              .add_style(RespoStyle::default().margin4(0.0, 0.0, 0.0, 20.0).to_owned())
+              .class("view")
+              .insert_attr("checked", task.completed.to_string())
+              .add_children([
+                input()
+                  .class("toggle")
+                  .insert_attr("type", "checkbox")
+                  .insert_attr("checked", task.completed.to_string())
+                  .add_event([("change", RespoListenerFn::new(on_toggle))])
+                  .to_owned(),
+                RespoNode::make_tag("label")
+                  .inner_text(task.title.to_owned())
+                  .add_event([("dblclick", RespoListenerFn::new(handle_edit))])
+                  .to_owned(),
+                button().class("destroy").on_click(on_destroy).to_owned(),
+              ])
               .to_owned(),
             input()
-              .class(ui_input())
-              .insert_attr("value", state.draft)
-              .insert_attr("placeholder", "something to update...")
-              .on_input(on_input)
+              .class("edit")
+              .insert_attr("value", state.edit_text)
+              .on_input(hanel_change)
+              .add_event([("keydown", RespoListenerFn::new(hadle_keydown))])
               .to_owned(),
-            space(Some(8), None),
-            button().class(ui_button()).inner_text("Update").on_click(on_update).to_owned(),
           ])
           .to_owned(),
       ),

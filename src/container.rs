@@ -124,10 +124,7 @@ pub fn comp_container(memo_caches: MemoCache<RespoNode<ActionOp>>, store: &Store
         RespoNode::make_tag("label")
           .insert_attr("htmlFor", "toggle-all".to_owned())
           .to_owned(),
-        ul()
-          .class("todo-list")
-          .add_children([comp_todolist(memo_caches, &states.pick("todolist"), &todos)?])
-          .to_owned(),
+        comp_todolist(memo_caches, &states.pick("todolist"), &todos)?,
       ])
       .to_owned()
   };

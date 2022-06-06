@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use respo::{button, div, memo1_call_by, span, ui::ui_button, util, MemoCache, RespoIndexKey, RespoNode, StatesTree};
+use respo::{button, div, memo1_call_by, span, ui::ui_button, ul, util, MemoCache, RespoIndexKey, RespoNode, StatesTree};
 
 use super::{
   store::{ActionOp, Task},
@@ -45,40 +45,12 @@ pub fn comp_todolist(
 
     children.push((
       task.id.to_owned().into(),
-      // comp_task(memo_caches.to_owned(), &states.pick(&task.id), task)?,
-      memo1_call_by!(comp_task, m.to_owned(), task.id.to_owned(), &states.pick(&task.id), task)?,
+      comp_task(memo_caches.to_owned(), &states.pick(&task.id), task, false)?,
+      // memo1_call_by!(comp_task, m.to_owned(), task.id.to_owned(), &states.pick(&task.id), task)?,
     ));
   }
 
-  // util::log!("{:?}", &tasks);
+  util::log!("{:?}", &children);
 
-  Ok(
-    div()
-      .add_children([
-        div()
-          .add_children([
-            span()
-              .inner_text(format!("tasks size: {} ... {}", tasks.len(), state.hide_done))
-              .to_owned(),
-            button()
-              .class(ui_button())
-              .inner_text("hide done")
-              .on_click(move |e, dispatch| -> Result<(), String> {
-                util::log!("click {:?}", e);
-
-                dispatch.run_state(
-                  &cursor,
-                  TodolistState {
-                    hide_done: !state.hide_done,
-                  },
-                )?;
-                Ok(())
-              })
-              .to_owned(),
-          ])
-          .to_owned(),
-        div().add_children_indexed(children).to_owned(),
-      ])
-      .to_owned(),
-  )
+  Ok(ul().class("todo-list").add_children_indexed(children).to_owned())
 }
