@@ -1,6 +1,7 @@
 extern crate console_error_panic_hook;
 
-mod panel;
+mod container;
+mod footer;
 mod store;
 mod task;
 mod todolist;
@@ -9,17 +10,15 @@ use std::cell::{Ref, RefCell, RefMut};
 use std::rc::Rc;
 use std::{panic, vec};
 
+use container::comp_container;
 use wasm_bindgen::prelude::*;
 use web_sys::Node;
 
-use respo::ui::ui_global;
-use respo::{div, util::query_select_node, StatesTree};
-use respo::{MemoCache, RespoApp, RespoNode, RespoStore, RespoStyle};
+use respo::{util::query_select_node, StatesTree};
+use respo::{MemoCache, RespoApp, RespoNode, RespoStore};
 
-use crate::panel::comp_panel;
 pub use crate::store::ActionOp;
 use crate::store::*;
-use crate::todolist::comp_todolist;
 
 struct App {
   store: Rc<RefCell<Store>>,
@@ -42,23 +41,14 @@ impl RespoApp for App {
   }
 
   fn dispatch(store: &mut RefMut<Self::Model>, op: Self::Action) -> Result<(), String> {
+    // respo::util::log!("dispatch action {:?}", op);
     store.update(op)
   }
 
   fn view(store: Ref<Self::Model>, memo_caches: MemoCache<RespoNode<Self::Action>>) -> Result<RespoNode<Self::Action>, String> {
-    let states = &store.states;
     // util::log!("global store: {:?}", store);
 
-    Ok(
-      div()
-        .class(ui_global())
-        .add_style(RespoStyle::default().padding(12.0).to_owned())
-        .add_children([
-          comp_panel(&states.pick("panel"))?,
-          comp_todolist(memo_caches, &states.pick("todolist"), &store.tasks)?,
-        ])
-        .to_owned(),
-    )
+    comp_container(memo_caches, &store)
   }
 }
 
@@ -71,7 +61,7 @@ pub fn load_app(query: &str) -> JsValue {
     mount_target: query_select_node(query).expect("mount target"),
     store: Rc::new(RefCell::new(Store {
       states: StatesTree::default(),
-      tasks: vec![],
+      todos: vec![],
     })),
     memo_caches: MemoCache::default(),
   };

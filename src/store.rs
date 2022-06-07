@@ -4,25 +4,28 @@ use respo::{util, MaybeState, RespoAction, RespoStore, StatesTree};
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Store {
-  pub tasks: Vec<Task>,
+  pub todos: Vec<Task>,
   pub states: StatesTree,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Task {
-  pub id: String,
-  pub done: bool,
-  pub content: String,
-  pub time: f32,
+  pub id: String, // generate from uuid
+  pub completed: bool,
+  pub title: String,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ActionOp {
   StatesChange(Vec<String>, MaybeState),
-  AddTask(String, String),
-  RemoveTask(String),
-  UpdateTask(String, String),
-  ToggleTask(String),
+  AddTodo(String, String),
+  ToggleAll,
+  Toggle(String),
+  /// Remove a task
+  Destroy(String),
+  /// save content to task
+  Save(String, String),
+  ClearCompleted,
 }
 
 impl RespoAction for ActionOp {
@@ -42,20 +45,46 @@ impl RespoStore for Store {
       ActionOp::StatesChange(path, new_state) => {
         self.states.set_in_mut(&path, new_state);
       }
-      ActionOp::AddTask(id, content) => self.tasks.push(Task {
+      ActionOp::AddTodo(id, content) => self.todos.push(Task {
         id,
-        content,
-        time: 0.0,
-        done: false,
+        title: content,
+        completed: false,
       }),
-      ActionOp::RemoveTask(id) => {
-        self.tasks.retain(|task| task.id != id);
+      ActionOp::ToggleAll => {
+        let completed = self.todos.iter().all(|t| t.completed);
+        for t in &mut self.todos {
+          t.completed = !completed;
+        }
       }
-      ActionOp::UpdateTask(id, content) => {
+      ActionOp::Toggle(id) => {
+        let mut found = None;
+        for t in &mut self.todos {
+          if t.id == id {
+            found = Some(t);
+            break;
+          }
+        }
+        if let Some(t) = found {
+          t.completed = !t.completed;
+        }
+      }
+      ActionOp::Destroy(id) => {
+        let mut found = None;
+        for t in &mut self.todos {
+          if t.id == id {
+            found = Some(t);
+            break;
+          }
+        }
+        if let Some(t) = found {
+          self.todos.retain(|t| t.id != id);
+        }
+      }
+      ActionOp::Save(id, content) => {
         let mut found = false;
-        for task in &mut self.tasks {
+        for task in &mut self.todos {
           if task.id == id {
-            task.content = content.to_owned();
+            task.title = content.to_owned();
             found = true;
           }
         }
@@ -63,20 +92,17 @@ impl RespoStore for Store {
           return Err(format!("task {} not found", id));
         }
       }
-      ActionOp::ToggleTask(id) => {
-        let mut found = false;
-        for task in &mut self.tasks {
-          if task.id == id {
-            util::log!("change task {:?}", task);
-            task.done = !task.done;
-            found = true;
-          }
-        }
-        if !found {
-          return Err(format!("task {} not found", id));
-        }
+      ActionOp::ClearCompleted => {
+        self.todos.retain(|t| !t.completed);
       }
     }
     Ok(())
   }
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+pub enum TodoFilter {
+  All,
+  Active,
+  Completed,
 }

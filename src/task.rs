@@ -1,31 +1,43 @@
-use std::fmt::Debug;
+use std::{fmt::Debug, rc::Rc};
 
 use serde::{Deserialize, Serialize};
 
 use respo::{
-  button, div, input, space, span, static_styles,
+  button, div, input, li, space, span, static_styles,
   ui::{ui_button, ui_center, ui_input, ui_row_middle},
   util::{self},
-  CssColor, CssSize, DispatchFn, MemoCache, RespoEffect, RespoEvent, RespoNode, RespoStyle, StatesTree,
+  CssColor, CssSize, DispatchFn, MemoCache, RespoEffect, RespoEffectType, RespoEvent, RespoListenerFn, RespoNode, RespoStyle,
+  StatesTree,
 };
+use wasm_bindgen::JsCast;
+use web_sys::{Element, HtmlElement, Node};
 
 use super::store::*;
 
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]
 struct TaskState {
-  draft: String,
+  edit_text: String,
 }
 
 pub fn comp_task(
   _memo_caches: MemoCache<RespoNode<ActionOp>>,
   states: &StatesTree,
   task: &Task,
+  editing: bool,
+  on_edit: impl Fn(String, DispatchFn<ActionOp>) -> Result<(), String> + 'static,
+  on_cancel: impl Fn(DispatchFn<ActionOp>) -> Result<(), String> + 'static,
+  // on_toggle: impl Fn() -> Result<(), String> + 'static,
+  // on_destroy: impl Fn() -> Result<(), String> + 'static,
+  // on_save: impl Fn() -> Result<(), String> + 'static,
 ) -> Result<RespoNode<ActionOp>, String> {
-  respo::util::log!("calling task function");
+  // respo::util::log!("calling task function");
 
   let task_id = task.id.to_owned();
   let task_id2 = task_id.clone();
   let task_id3 = task_id.clone();
+  let task_id4 = task_id.clone();
+
+  let task2 = task.to_owned();
 
   let cursor = states.path();
   let cursor2 = cursor.clone();
@@ -33,68 +45,108 @@ pub fn comp_task(
   let state2 = state.clone();
 
   let on_toggle = move |_e, dispatch: DispatchFn<_>| -> Result<(), String> {
-    dispatch.run(ActionOp::ToggleTask(task_id.to_owned()))?;
+    dispatch.run(ActionOp::Toggle(task_id.to_owned()))?;
     Ok(())
   };
 
-  let on_input = move |e, dispatch: DispatchFn<_>| -> Result<(), String> {
+  let handle_change = move |e, dispatch: DispatchFn<_>| -> Result<(), String> {
     if let RespoEvent::Input { value, .. } = e {
-      dispatch.run_state(&cursor, TaskState { draft: value })?;
+      dispatch.run_state(&cursor, TaskState { edit_text: value })?;
     }
     Ok(())
   };
 
-  let on_remove = move |e, dispatch: DispatchFn<_>| -> Result<(), String> {
-    util::log!("remove button {:?}", e);
-    dispatch.run(ActionOp::RemoveTask(task_id2.to_owned()))?;
+  let on_destroy = move |e, dispatch: DispatchFn<_>| -> Result<(), String> {
+    dispatch.run(ActionOp::Destroy(task_id2.to_owned()))?;
     Ok(())
   };
 
-  let on_update = move |_e, dispatch: DispatchFn<_>| -> Result<(), String> {
-    dispatch.run(ActionOp::UpdateTask(task_id3.to_owned(), state2.draft.clone()))?;
-    dispatch.run_empty_state(&cursor2)?;
+  let on_cancel2 = Rc::new(on_cancel);
+  let on_cancel3 = on_cancel2.to_owned();
+  let handle_submit = move |dispatch: DispatchFn<_>| -> Result<(), String> {
+    dispatch.run(ActionOp::Save(task_id4.to_owned(), state2.edit_text.clone()))?;
+    on_cancel2(dispatch)?;
+    Ok(())
+  };
+
+  let handle_submit2 = Rc::new(handle_submit);
+  let handle_submit3 = handle_submit2.clone();
+
+  let handle_blur = move |e, dispatch: DispatchFn<_>| -> Result<(), String> { handle_submit2(dispatch) };
+
+  let handle_keydown = move |e, dispatch: DispatchFn<_>| -> Result<(), String> {
+    if let RespoEvent::Keyboard { key, key_code, .. } = e {
+      if key_code == 13 {
+        handle_submit3(dispatch)?;
+      } else if key_code == 27 {
+        on_cancel3(dispatch)?;
+      }
+    }
+    Ok(())
+  };
+
+  let handle_edit = move |_e, dispatch: DispatchFn<_>| -> Result<(), String> {
+    // TODO edit
+    on_edit(task_id3.to_owned(), dispatch.to_owned())?;
+    dispatch.run_state(
+      &cursor2,
+      TaskState {
+        edit_text: task2.title.clone(),
+      },
+    )?;
     Ok(())
   };
 
   Ok(
     RespoNode::Component(
       "tasks".to_owned(),
-      vec![RespoEffect::new(vec![&task], move |args, effect_type, _el| -> Result<(), String> {
-        let t: Task = args[0].cast_into()?;
-        util::log!("effect {:?} task: {:?}", effect_type, t);
-        // TODO
-        Ok(())
-      })],
+      vec![RespoEffect::new(
+        vec![&editing],
+        move |args, effect_type, el| -> Result<(), String> {
+          let is_editing: bool = args[0].cast_into()?;
+          if is_editing && effect_type == RespoEffectType::Updated {
+            el.dyn_ref::<Element>()
+              .unwrap()
+              .query_selector(".edit")
+              .unwrap()
+              .unwrap()
+              .dyn_ref::<HtmlElement>()
+              .unwrap()
+              .focus()
+              .expect("focus");
+          }
+          Ok(())
+        },
+      )],
       Box::new(
-        div()
-          .class_list(&[ui_row_middle(), style_task_container()])
+        li()
+          .class_list(&[if editing { "editing" } else { "" }, if task.completed { "completed" } else { "" }])
           .add_children([
             div()
-              .class(style_done_button())
-              .add_style(if task.done {
-                RespoStyle::default().background_color(CssColor::Blue).to_owned()
-              } else {
-                RespoStyle::default()
-              })
-              .on_click(on_toggle)
-              .to_owned(),
-            div().inner_text(task.content.to_owned()).to_owned(),
-            span()
-              .class_list(&[ui_center(), style_remove_button()])
-              .inner_text("✕")
-              .on_click(on_remove)
-              .to_owned(),
-            div()
-              .add_style(RespoStyle::default().margin4(0.0, 0.0, 0.0, 20.0).to_owned())
+              .class("view")
+              .add_children([
+                input()
+                  .class("toggle")
+                  .insert_attr("type", "checkbox")
+                  .maybe_insert_attr("checked", if task.completed { Some("checked") } else { None })
+                  .add_event([("change", RespoListenerFn::new(on_toggle))])
+                  .to_owned(),
+                RespoNode::make_tag("label")
+                  .inner_text(task.title.to_owned())
+                  .add_event([("dblclick", RespoListenerFn::new(handle_edit))])
+                  .to_owned(),
+                button().class("destroy").on_click(on_destroy).to_owned(),
+              ])
               .to_owned(),
             input()
-              .class(ui_input())
-              .insert_attr("value", state.draft)
-              .insert_attr("placeholder", "something to update...")
-              .on_input(on_input)
+              .class("edit")
+              .insert_attr("value", state.edit_text)
+              .on_input(handle_change)
+              .add_event([
+                ("keydown", RespoListenerFn::new(handle_keydown)),
+                ("blur", RespoListenerFn::new(handle_blur)),
+              ])
               .to_owned(),
-            space(Some(8), None),
-            button().class(ui_button()).inner_text("Update").on_click(on_update).to_owned(),
           ])
           .to_owned(),
       ),

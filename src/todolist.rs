@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use respo::{button, div, memo1_call_by, span, ui::ui_button, util, MemoCache, RespoIndexKey, RespoNode, StatesTree};
+use respo::{button, div, memo1_call_by, span, ui::ui_button, ul, util, DispatchFn, MemoCache, RespoIndexKey, RespoNode, StatesTree};
 
 use super::{
   store::{ActionOp, Task},
@@ -9,7 +9,7 @@ use super::{
 
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]
 struct TodolistState {
-  hide_done: bool,
+  editing: Option<String>,
 }
 
 pub fn comp_todolist(
@@ -22,15 +22,25 @@ pub fn comp_todolist(
 
   let mut children: Vec<(RespoIndexKey, RespoNode<_>)> = vec![];
   for task in tasks {
-    if state.hide_done && task.done {
-      continue;
-    }
     // children.push((
     //   task.id.to_owned().into(),
     //   comp_task(memo_caches.to_owned(), &states.pick(&task.id), task)?,
     // ));
 
+    let cursor2 = cursor.clone();
+    let cursor3 = cursor.clone();
+
     let m = memo_caches.to_owned();
+
+    let on_edit = move |todo_id: String, dispatch: DispatchFn<_>| -> Result<(), String> {
+      dispatch.run_state(&cursor2, TodolistState { editing: Some(todo_id) })?;
+      Ok(())
+    };
+
+    let on_cancel = move |dispatch: DispatchFn<_>| -> Result<(), String> {
+      dispatch.run_empty_state(&cursor3)?;
+      Ok(())
+    };
 
     // children.push((
     //   task.id.to_owned().into(),
@@ -45,40 +55,19 @@ pub fn comp_todolist(
 
     children.push((
       task.id.to_owned().into(),
-      // comp_task(memo_caches.to_owned(), &states.pick(&task.id), task)?,
-      memo1_call_by!(comp_task, m.to_owned(), task.id.to_owned(), &states.pick(&task.id), task)?,
+      comp_task(
+        memo_caches.to_owned(),
+        &states.pick(&task.id),
+        task,
+        state.editing.as_ref() == Some(&task.id),
+        on_edit,
+        on_cancel,
+      )?,
+      // memo1_call_by!(comp_task, m.to_owned(), task.id.to_owned(), &states.pick(&task.id), task)?,
     ));
   }
 
-  // util::log!("{:?}", &tasks);
+  // util::log!("{:?}", &children);
 
-  Ok(
-    div()
-      .add_children([
-        div()
-          .add_children([
-            span()
-              .inner_text(format!("tasks size: {} ... {}", tasks.len(), state.hide_done))
-              .to_owned(),
-            button()
-              .class(ui_button())
-              .inner_text("hide done")
-              .on_click(move |e, dispatch| -> Result<(), String> {
-                util::log!("click {:?}", e);
-
-                dispatch.run_state(
-                  &cursor,
-                  TodolistState {
-                    hide_done: !state.hide_done,
-                  },
-                )?;
-                Ok(())
-              })
-              .to_owned(),
-          ])
-          .to_owned(),
-        div().add_children_indexed(children).to_owned(),
-      ])
-      .to_owned(),
-  )
+  Ok(ul().class("todo-list").add_children_indexed(children).to_owned())
 }

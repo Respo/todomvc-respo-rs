@@ -99,9 +99,9 @@ dependencies = [
 
 [[package]]
 name = "respo"
-version = "0.0.10-a2"
+version = "0.0.11-a2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ae68ae3efe111990a7eb568f9476d762fda3567d00884f5db0947417ee5ec5f5"
+checksum = "b49a6d6ee4aeb36c24cb41ba3e2976316a01d930b5c7cdba72b1abfba9937257"
 dependencies = [
  "cirru_parser",
  "console_error_panic_hook",
@@ -171,7 +171,7 @@ dependencies = [
 
 [[package]]
 name = "todomvc-respo-rs"
-version = "0.0.8"
+version = "0.0.1"
 dependencies = [
  "console_error_panic_hook",
  "js-sys",
