@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use respo::{button, div, memo1_call_by, span, ui::ui_button, ul, util, DispatchFn, MemoCache, RespoIndexKey, RespoNode, StatesTree};
+use respo::{ul, DispatchFn, MemoCache, RespoIndexKey, RespoNode, StatesTree};
 
 use super::{
   store::{ActionOp, Task},
@@ -30,7 +30,7 @@ pub fn comp_todolist(
     let cursor2 = cursor.clone();
     let cursor3 = cursor.clone();
 
-    let m = memo_caches.to_owned();
+    // let m = memo_caches.to_owned();
 
     let on_edit = move |todo_id: String, dispatch: DispatchFn<_>| -> Result<(), String> {
       dispatch.run_state(&cursor2, TodolistState { editing: Some(todo_id) })?;
@@ -69,5 +69,5 @@ pub fn comp_todolist(
 
   // util::log!("{:?}", &children);
 
-  Ok(ul().class("todo-list").add_children_indexed(children).to_owned())
+  Ok(ul().class("todo-list").children_indexed(children).to_owned())
 }

@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use respo::{util, MaybeState, RespoAction, RespoStore, StatesTree};
+use respo::{MaybeState, RespoAction, RespoStore, StatesTree};
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Store {
@@ -76,7 +76,7 @@ impl RespoStore for Store {
             break;
           }
         }
-        if let Some(t) = found {
+        if let Some(_t) = found {
           self.todos.retain(|t| t.id != id);
         }
       }
