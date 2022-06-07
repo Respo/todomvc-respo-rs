@@ -6,7 +6,7 @@ use crate::{
 
 use uuid::Uuid;
 
-use respo::{div, h1, header, input, label, section, span, DispatchFn, MemoCache, RespoEffect, RespoEvent, RespoNode, RespoStyle};
+use respo::{div, h1, header, input, label, section, span, DispatchFn, MemoCache, RespoEvent, RespoNode, RespoStyle};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -143,17 +143,9 @@ pub fn comp_container(memo_caches: MemoCache<RespoNode<ActionOp>>, store: &Store
     span()
   };
 
-  Ok(RespoNode::Component(
-    "container".to_owned(),
-    vec![RespoEffect::new::<_, ()>(
-      vec![],
-      move |_args, _effect_type, _el| -> Result<(), String> {
-        // TODO
-        respo::util::log!("TODO no router implementation");
-        Ok(())
-      },
-    )],
-    Box::new(
+  Ok(
+    RespoNode::new_component(
+      "container",
       div()
         .style(RespoStyle::default().padding(12.0).to_owned())
         .children([
@@ -174,6 +166,12 @@ pub fn comp_container(memo_caches: MemoCache<RespoNode<ActionOp>>, store: &Store
           footer,
         ])
         .to_owned(),
-    ),
-  ))
+    )
+    .stable_effect(move |_args, _effect_type, _el| -> Result<(), String> {
+      // TODO
+      respo::util::log!("TODO no router implementation");
+      Ok(())
+    })
+    .to_owned(),
+  )
 }

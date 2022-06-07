@@ -33,61 +33,58 @@ pub fn comp_footer(
   let on_filter3 = on_filter2.to_owned();
   let on_filter4 = on_filter2.to_owned();
 
-  Ok(RespoNode::Component(
-    "footer".to_owned(),
-    vec![],
-    Box::new(
-      footer()
-        .class("footer")
-        .children([
-          span()
-            .class("todo-count")
-            .children([
-              RespoNode::new_tag("strong").inner_text(count.to_string()).to_owned(),
-              span().inner_text(" items left").to_owned(),
-            ])
-            .to_owned(),
-          ul()
-            .class("filters")
-            .children([
-              li()
-                .children([a()
-                  .inner_text("All")
-                  .class(if now_showing == TodoFilter::All { "selected" } else { "" })
-                  .on_click(move |_e, d| {
-                    let on_filter = &on_filter2;
-                    on_filter(TodoFilter::All, d)?;
-                    Ok(())
-                  })
-                  .to_owned()])
-                .to_owned(),
-              li()
-                .children([a()
-                  .inner_text("Active")
-                  .class(if now_showing == TodoFilter::Active { "selected" } else { "" })
-                  .on_click(move |_e, d| {
-                    let on_filter = &on_filter3;
-                    on_filter(TodoFilter::Active, d)?;
-                    Ok(())
-                  })
-                  .to_owned()])
-                .to_owned(),
-              li()
-                .children([a()
-                  .inner_text("Completed")
-                  .class(if now_showing == TodoFilter::Completed { "selected" } else { "" })
-                  .on_click(move |_e, d| {
-                    let on_filter = &on_filter4;
-                    on_filter(TodoFilter::Completed, d)?;
-                    Ok(())
-                  })
-                  .to_owned()])
-                .to_owned(),
-            ])
-            .to_owned(),
-          clear_button,
-        ])
-        .to_owned(),
-    ),
+  Ok(RespoNode::new_component(
+    "footer",
+    footer()
+      .class("footer")
+      .children([
+        span()
+          .class("todo-count")
+          .children([
+            RespoNode::new_tag("strong").inner_text(count.to_string()).to_owned(),
+            span().inner_text(" items left").to_owned(),
+          ])
+          .to_owned(),
+        ul()
+          .class("filters")
+          .children([
+            li()
+              .children([a()
+                .inner_text("All")
+                .class(if now_showing == TodoFilter::All { "selected" } else { "" })
+                .on_click(move |_e, d| {
+                  let on_filter = &on_filter2;
+                  on_filter(TodoFilter::All, d)?;
+                  Ok(())
+                })
+                .to_owned()])
+              .to_owned(),
+            li()
+              .children([a()
+                .inner_text("Active")
+                .class(if now_showing == TodoFilter::Active { "selected" } else { "" })
+                .on_click(move |_e, d| {
+                  let on_filter = &on_filter3;
+                  on_filter(TodoFilter::Active, d)?;
+                  Ok(())
+                })
+                .to_owned()])
+              .to_owned(),
+            li()
+              .children([a()
+                .inner_text("Completed")
+                .class(if now_showing == TodoFilter::Completed { "selected" } else { "" })
+                .on_click(move |_e, d| {
+                  let on_filter = &on_filter4;
+                  on_filter(TodoFilter::Completed, d)?;
+                  Ok(())
+                })
+                .to_owned()])
+              .to_owned(),
+          ])
+          .to_owned(),
+        clear_button,
+      ])
+      .to_owned(),
   ))
 }

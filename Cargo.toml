@@ -18,7 +18,7 @@ console_error_panic_hook = "0.1.7"
 lazy_static = "1.4.0"
 serde = { version = "1.0.137", features = [ "derive" ] }
 uuid = { version = "1.0.0", features = [ "v4", "js" ] }
-respo = "0.0.12-a1"
+respo = "0.0.12-a2"
 # respo = { path = "/Users/chenyong/repo/respo/rs.respo/" }
 
 [lib]

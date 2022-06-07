@@ -3,8 +3,8 @@ use std::{fmt::Debug, rc::Rc};
 use serde::{Deserialize, Serialize};
 
 use respo::{
-  button, div, input, li, static_styles, CssColor, CssSize, DispatchFn, MemoCache, RespoEffectType, RespoEvent, RespoNode, RespoStyle,
-  StatesTree,
+  button, div, input, label, li, static_styles, CssColor, CssSize, DispatchFn, MemoCache, RespoEffectType, RespoEvent, RespoNode,
+  RespoStyle, StatesTree,
 };
 use wasm_bindgen::JsCast;
 use web_sys::{Element, HtmlElement};
@@ -96,7 +96,7 @@ pub fn comp_task(
 
   Ok(
     RespoNode::new_component(
-      "tasks",
+      "task",
       li()
         .class_list(&[if editing { "editing" } else { "" }, if task.completed { "completed" } else { "" }])
         .children([
@@ -109,7 +109,7 @@ pub fn comp_task(
                 .maybe_attribute("checked", if task.completed { Some("checked") } else { None })
                 .on_named_event("change", on_toggle)
                 .to_owned(),
-              RespoNode::new_tag("label")
+              label()
                 .inner_text(task.title.to_owned())
                 .on_named_event("dblclick", handle_edit)
                 .to_owned(),
