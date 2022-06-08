@@ -39,6 +39,9 @@ impl RespoApp for App {
   fn get_memo_caches(&self) -> MemoCache<RespoNode<Self::Action>> {
     self.memo_caches.to_owned()
   }
+  fn get_loop_delay() -> Option<i32> {
+    Some(80)
+  }
 
   fn dispatch(store: &mut RefMut<Self::Model>, op: Self::Action) -> Result<(), String> {
     // respo::util::log!("dispatch action {:?}", op);

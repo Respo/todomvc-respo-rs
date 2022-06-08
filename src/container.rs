@@ -51,8 +51,8 @@ pub fn comp_container(memo_caches: MemoCache<RespoNode<ActionOp>>, store: &Store
   let on_keydown = move |e, dispatch: DispatchFn<_>| -> Result<(), String> {
     // TODO
     if let RespoEvent::Keyboard { key_code, .. } = e {
-      if key_code == 13 {
-        let val = state.new_todo.to_owned(); // TODO
+      let val = state.new_todo.to_owned();
+      if key_code == 13 && !val.trim().is_empty() {
         dispatch.run(ActionOp::AddTodo(Uuid::new_v4().to_string(), val))?;
         dispatch.run_state(
           &cursor,
