@@ -3,14 +3,11 @@ use std::{fmt::Debug, rc::Rc};
 use serde::{Deserialize, Serialize};
 
 use respo::{
-  button, div, input, li, space, span, static_styles,
-  ui::{ui_button, ui_center, ui_input, ui_row_middle},
-  util::{self},
-  CssColor, CssSize, DispatchFn, MemoCache, RespoEffect, RespoEffectType, RespoEvent, RespoListenerFn, RespoNode, RespoStyle,
-  StatesTree,
+  button, div, input, label, li, static_styles, CssColor, CssSize, DispatchFn, MemoCache, RespoEffectType, RespoEvent, RespoNode,
+  RespoStyle, StatesTree,
 };
 use wasm_bindgen::JsCast;
-use web_sys::{Element, HtmlElement, Node};
+use web_sys::{Element, HtmlElement};
 
 use super::store::*;
 
@@ -56,7 +53,7 @@ pub fn comp_task(
     Ok(())
   };
 
-  let on_destroy = move |e, dispatch: DispatchFn<_>| -> Result<(), String> {
+  let on_destroy = move |_e, dispatch: DispatchFn<_>| -> Result<(), String> {
     dispatch.run(ActionOp::Destroy(task_id2.to_owned()))?;
     Ok(())
   };
@@ -72,10 +69,10 @@ pub fn comp_task(
   let handle_submit2 = Rc::new(handle_submit);
   let handle_submit3 = handle_submit2.clone();
 
-  let handle_blur = move |e, dispatch: DispatchFn<_>| -> Result<(), String> { handle_submit2(dispatch) };
+  let handle_blur = move |_e, dispatch: DispatchFn<_>| -> Result<(), String> { handle_submit2(dispatch) };
 
   let handle_keydown = move |e, dispatch: DispatchFn<_>| -> Result<(), String> {
-    if let RespoEvent::Keyboard { key, key_code, .. } = e {
+    if let RespoEvent::Keyboard { key_code, .. } = e {
       if key_code == 13 {
         handle_submit3(dispatch)?;
       } else if key_code == 27 {
@@ -98,59 +95,52 @@ pub fn comp_task(
   };
 
   Ok(
-    RespoNode::Component(
-      "tasks".to_owned(),
-      vec![RespoEffect::new(
-        vec![&editing],
-        move |args, effect_type, el| -> Result<(), String> {
-          let is_editing: bool = args[0].cast_into()?;
-          if is_editing && effect_type == RespoEffectType::Updated {
-            el.dyn_ref::<Element>()
-              .unwrap()
-              .query_selector(".edit")
-              .unwrap()
-              .unwrap()
-              .dyn_ref::<HtmlElement>()
-              .unwrap()
-              .focus()
-              .expect("focus");
-          }
-          Ok(())
-        },
-      )],
-      Box::new(
-        li()
-          .class_list(&[if editing { "editing" } else { "" }, if task.completed { "completed" } else { "" }])
-          .add_children([
-            div()
-              .class("view")
-              .add_children([
-                input()
-                  .class("toggle")
-                  .insert_attr("type", "checkbox")
-                  .maybe_insert_attr("checked", if task.completed { Some("checked") } else { None })
-                  .add_event([("change", RespoListenerFn::new(on_toggle))])
-                  .to_owned(),
-                RespoNode::make_tag("label")
-                  .inner_text(task.title.to_owned())
-                  .add_event([("dblclick", RespoListenerFn::new(handle_edit))])
-                  .to_owned(),
-                button().class("destroy").on_click(on_destroy).to_owned(),
-              ])
-              .to_owned(),
-            input()
-              .class("edit")
-              .insert_attr("value", state.edit_text)
-              .on_input(handle_change)
-              .add_event([
-                ("keydown", RespoListenerFn::new(handle_keydown)),
-                ("blur", RespoListenerFn::new(handle_blur)),
-              ])
-              .to_owned(),
-          ])
-          .to_owned(),
-      ),
+    RespoNode::new_component(
+      "task",
+      li()
+        .class_list(&[if editing { "editing" } else { "" }, if task.completed { "completed" } else { "" }])
+        .children([
+          div()
+            .class("view")
+            .children([
+              input()
+                .class("toggle")
+                .attribute("type", "checkbox")
+                .maybe_attribute("checked", if task.completed { Some("checked") } else { None })
+                .on_named_event("change", on_toggle)
+                .to_owned(),
+              label()
+                .inner_text(task.title.to_owned())
+                .on_named_event("dblclick", handle_edit)
+                .to_owned(),
+              button().class("destroy").on_click(on_destroy).to_owned(),
+            ])
+            .to_owned(),
+          input()
+            .class("edit")
+            .attribute("value", state.edit_text)
+            .on_input(handle_change)
+            .on_keydown(handle_keydown)
+            .on_named_event("blur", handle_blur)
+            .to_owned(),
+        ])
+        .to_owned(),
     )
+    .effect(&[editing], move |args, effect_type, el| -> Result<(), String> {
+      let is_editing: bool = args[0].cast_into()?;
+      if is_editing && effect_type == RespoEffectType::Updated {
+        el.dyn_ref::<Element>()
+          .unwrap()
+          .query_selector(".edit")
+          .unwrap()
+          .unwrap()
+          .dyn_ref::<HtmlElement>()
+          .unwrap()
+          .focus()
+          .expect("focus");
+      }
+      Ok(())
+    })
     .share_with_ref(),
   )
 }

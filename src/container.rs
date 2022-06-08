@@ -6,9 +6,7 @@ use crate::{
 
 use uuid::Uuid;
 
-use respo::{
-  div, h1, header, input, section, span, ul, DispatchFn, MemoCache, RespoEffect, RespoEvent, RespoListenerFn, RespoNode, RespoStyle,
-};
+use respo::{div, h1, header, input, label, section, span, DispatchFn, MemoCache, RespoEvent, RespoNode, RespoStyle};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -52,10 +50,7 @@ pub fn comp_container(memo_caches: MemoCache<RespoNode<ActionOp>>, store: &Store
 
   let on_keydown = move |e, dispatch: DispatchFn<_>| -> Result<(), String> {
     // TODO
-    if let RespoEvent::Keyboard {
-      key_code, original_event, ..
-    } = e
-    {
+    if let RespoEvent::Keyboard { key_code, .. } = e {
       if key_code == 13 {
         let val = state.new_todo.to_owned(); // TODO
         dispatch.run(ActionOp::AddTodo(Uuid::new_v4().to_string(), val))?;
@@ -103,25 +98,18 @@ pub fn comp_container(memo_caches: MemoCache<RespoNode<ActionOp>>, store: &Store
 
     section()
       .class("main")
-      .add_children([
+      .children([
         input()
-          .add_attrs([
-            ("class", "toggle-all".to_owned()),
-            ("type", "checkbox".to_owned()),
-            ("checked", (active_todo_count == 0).to_string()),
-          ])
-          .add_event(vec![(
-            "change",
-            RespoListenerFn::new(move |e, dispatch: DispatchFn<_>| -> Result<(), String> {
-              respo::util::log!("change event");
-              dispatch.run(ActionOp::ToggleAll)?;
-              Ok(())
-            }),
-          )])
+          .class("toggle-all")
+          .attribute("type", "checkbox")
+          .maybe_attribute("checked", if active_todo_count == 0 { None } else { Some("checked") })
+          .on_named_event("change", move |_e, dispatch: DispatchFn<_>| -> Result<(), String> {
+            respo::util::log!("change event");
+            dispatch.run(ActionOp::ToggleAll)?;
+            Ok(())
+          })
           .to_owned(),
-        RespoNode::make_tag("label")
-          .insert_attr("htmlFor", "toggle-all".to_owned())
-          .to_owned(),
+        label().attribute("htmlFor", "toggle-all".to_owned()).to_owned(),
         comp_todolist(memo_caches, &states.pick("todolist"), &todos)?,
       ])
       .to_owned()
@@ -155,32 +143,22 @@ pub fn comp_container(memo_caches: MemoCache<RespoNode<ActionOp>>, store: &Store
     span()
   };
 
-  Ok(RespoNode::Component(
-    "container".to_owned(),
-    vec![RespoEffect::new::<_, ()>(
-      vec![],
-      move |args, effect_type, _el| -> Result<(), String> {
-        // TODO
-        respo::util::log!("TODO no router implementation");
-        Ok(())
-      },
-    )],
-    Box::new(
+  Ok(
+    RespoNode::new_component(
+      "container",
       div()
-        .add_style(RespoStyle::default().padding(12.0).to_owned())
-        .add_children([
+        .style(RespoStyle::default().padding(12.0).to_owned())
+        .children([
           header()
-            .add_children([
+            .children([
               h1().inner_text("todos").to_owned(),
               input()
                 .class("new-todo")
-                .insert_attr("placeholder", "What needs to be done?")
-                .insert_attr("autofocus", true.to_string())
-                .insert_attr("value", state4.new_todo)
-                .add_event(vec![
-                  ("keydown", RespoListenerFn::new(on_keydown)),
-                  ("input", RespoListenerFn::new(on_input)),
-                ])
+                .attribute("placeholder", "What needs to be done?")
+                .attribute("autofocus", true)
+                .attribute("value", state4.new_todo)
+                .on_keydown(on_keydown)
+                .on_input(on_input)
                 .to_owned(),
             ])
             .to_owned(),
@@ -188,6 +166,12 @@ pub fn comp_container(memo_caches: MemoCache<RespoNode<ActionOp>>, store: &Store
           footer,
         ])
         .to_owned(),
-    ),
-  ))
+    )
+    .stable_effect(move |_args, _effect_type, _el| -> Result<(), String> {
+      // TODO
+      respo::util::log!("TODO no router implementation");
+      Ok(())
+    })
+    .to_owned(),
+  )
 }
