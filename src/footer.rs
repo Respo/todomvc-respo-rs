@@ -51,7 +51,7 @@ pub fn comp_footer(
             li()
               .children([a()
                 .inner_text("All")
-                .toggle_class("selecteed", now_showing == TodoFilter::All)
+                .toggle_class("selected", now_showing == TodoFilter::All)
                 .on_click(move |_e, d| {
                   let on_filter = &on_filter2;
                   on_filter(TodoFilter::All, d)?;

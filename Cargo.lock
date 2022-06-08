@@ -99,9 +99,9 @@ dependencies = [
 
 [[package]]
 name = "respo"
-version = "0.0.12-a3"
+version = "0.0.12-a4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b60cbd9cab08f55b6e32dcd2cbd2c20a62ef3f92e9aff32dfabdfd0294485d73"
+checksum = "74899f32ede422a7a17c24429554f3b8a3392c10e558a3f2b4a91c4973b7217a"
 dependencies = [
  "cirru_parser",
  "console_error_panic_hook",

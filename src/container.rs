@@ -49,7 +49,6 @@ pub fn comp_container(memo_caches: MemoCache<RespoNode<ActionOp>>, store: &Store
   let completed_count = todos.len() - active_todo_count;
 
   let on_keydown = move |e, dispatch: DispatchFn<_>| -> Result<(), String> {
-    // TODO
     if let RespoEvent::Keyboard { key_code, .. } = e {
       let val = state.new_todo.to_owned();
       if key_code == 13 && !val.trim().is_empty() {
@@ -101,10 +100,11 @@ pub fn comp_container(memo_caches: MemoCache<RespoNode<ActionOp>>, store: &Store
       .children([
         input()
           .class("toggle-all")
+          .attribute("id", "toggle-all")
           .attribute("type", "checkbox")
           .maybe_attribute("checked", if active_todo_count == 0 { None } else { Some("checked") })
           .on_named_event("change", move |_e, dispatch: DispatchFn<_>| -> Result<(), String> {
-            respo::util::log!("change event");
+            // respo::util::log!("change event");
             dispatch.run(ActionOp::ToggleAll)?;
             Ok(())
           })
