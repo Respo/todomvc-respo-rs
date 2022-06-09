@@ -51,7 +51,7 @@ pub fn comp_footer(
             li()
               .children([a()
                 .inner_text("All")
-                .class(if now_showing == TodoFilter::All { "selected" } else { "" })
+                .toggle_class("selected", now_showing == TodoFilter::All)
                 .on_click(move |_e, d| {
                   let on_filter = &on_filter2;
                   on_filter(TodoFilter::All, d)?;
@@ -62,7 +62,7 @@ pub fn comp_footer(
             li()
               .children([a()
                 .inner_text("Active")
-                .class(if now_showing == TodoFilter::Active { "selected" } else { "" })
+                .toggle_class("selected", now_showing == TodoFilter::Active)
                 .on_click(move |_e, d| {
                   let on_filter = &on_filter3;
                   on_filter(TodoFilter::Active, d)?;
@@ -73,7 +73,7 @@ pub fn comp_footer(
             li()
               .children([a()
                 .inner_text("Completed")
-                .class(if now_showing == TodoFilter::Completed { "selected" } else { "" })
+                .toggle_class("selected", now_showing == TodoFilter::Completed)
                 .on_click(move |_e, d| {
                   let on_filter = &on_filter4;
                   on_filter(TodoFilter::Completed, d)?;

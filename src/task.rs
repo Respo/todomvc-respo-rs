@@ -98,7 +98,8 @@ pub fn comp_task(
     RespoNode::new_component(
       "task",
       li()
-        .class_list(&[if editing { "editing" } else { "" }, if task.completed { "completed" } else { "" }])
+        .toggle_class("editing", editing)
+        .toggle_class("completed", task.completed)
         .children([
           div()
             .class("view")
