@@ -1,8 +1,6 @@
-use crate::{
-  footer::comp_footer,
-  store::{ActionOp, Store, TodoFilter},
-  todolist::comp_todolist,
-};
+use crate::footer::comp_footer;
+use crate::store::{ActionOp, Store, TodoFilter};
+use crate::todolist::comp_todolist;
 
 use uuid::Uuid;
 

@@ -11,14 +11,13 @@ use std::rc::Rc;
 use std::{panic, vec};
 
 use container::comp_container;
-use wasm_bindgen::prelude::*;
 use web_sys::Node;
 
 use respo::{util::query_select_node, StatesTree};
 use respo::{MemoCache, RespoApp, RespoNode, RespoStore};
 
-pub use crate::store::ActionOp;
-use crate::store::*;
+pub use store::ActionOp;
+use store::*;
 
 struct App {
   store: Rc<RefCell<Store>>,
@@ -56,12 +55,11 @@ impl RespoApp for App {
 }
 
 /// a demo Respo node that mounts target element for dev/debug purposes
-#[wasm_bindgen(js_name = loadApp)]
-pub fn load_app(query: &str) -> JsValue {
+pub fn main() -> Result<(), String> {
   panic::set_hook(Box::new(console_error_panic_hook::hook));
 
   let app = App {
-    mount_target: query_select_node(query).expect("mount target"),
+    mount_target: query_select_node(".app").expect("mount target"),
     store: Rc::new(RefCell::new(Store {
       states: StatesTree::default(),
       todos: vec![],
@@ -71,5 +69,5 @@ pub fn load_app(query: &str) -> JsValue {
 
   app.render_loop().expect("app render");
 
-  JsValue::NULL
+  Ok(())
 }
