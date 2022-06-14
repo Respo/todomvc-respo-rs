@@ -99,18 +99,16 @@ dependencies = [
 
 [[package]]
 name = "respo"
-version = "0.0.12-a4"
+version = "0.0.12-a5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "74899f32ede422a7a17c24429554f3b8a3392c10e558a3f2b4a91c4973b7217a"
+checksum = "a6cc20311a9108ada2b711f9ada6b38fe99718ec0c0bbd531461a0159e29e2b7"
 dependencies = [
  "cirru_parser",
- "console_error_panic_hook",
  "js-sys",
  "lazy_static",
  "rust-hsluv",
  "serde",
  "serde_json",
- "uuid",
  "wasm-bindgen",
  "web-sys",
 ]
