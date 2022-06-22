@@ -2,13 +2,13 @@ use serde::{Deserialize, Serialize};
 
 use respo::{MaybeState, RespoAction, RespoStore, StatesTree};
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub struct Store {
   pub todos: Vec<Task>,
   pub states: StatesTree,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Task {
   pub id: String, // generate from uuid
   pub completed: bool,
