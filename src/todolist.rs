@@ -1,24 +1,26 @@
+use std::rc::Rc;
+
+use respo_state_derive::RespoState;
 use serde::{Deserialize, Serialize};
 
-use respo::{ul, DispatchFn, MemoCache, RespoIndexKey, RespoNode, StatesTree};
+use respo::{
+  states_tree::{RespoState, RespoStatesTree},
+  ul, DispatchFn, RespoElement, RespoIndexKey, RespoNode,
+};
 
 use super::{
   store::{ActionOp, Task},
   task::comp_task,
 };
 
-#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+#[derive(Debug, Clone, Default, Deserialize, Serialize, PartialEq, Eq, RespoState)]
 struct TodolistState {
   editing: Option<String>,
 }
 
-pub fn comp_todolist(
-  memo_caches: MemoCache<RespoNode<ActionOp>>,
-  states: &StatesTree,
-  tasks: &[Task],
-) -> Result<RespoNode<ActionOp>, String> {
+pub fn comp_todolist(states: &RespoStatesTree, tasks: &[Task]) -> Result<RespoElement<ActionOp>, String> {
   let cursor = states.path();
-  let state: TodolistState = states.data.cast_or_default()?;
+  let state: Rc<TodolistState> = states.cast_branch::<TodolistState>();
 
   let mut children: Vec<(RespoIndexKey, RespoNode<_>)> = vec![];
   for task in tasks {
@@ -56,8 +58,7 @@ pub fn comp_todolist(
     children.push((
       task.id.to_owned().into(),
       comp_task(
-        memo_caches.to_owned(),
-        &states.pick(&task.id),
+        states.pick(&task.id),
         task,
         state.editing.as_ref() == Some(&task.id),
         on_edit,
@@ -69,5 +70,5 @@ pub fn comp_todolist(
 
   // util::log!("{:?}", &children);
 
-  Ok(ul().class("todo-list").children_indexed(children).to_owned())
+  Ok(ul().class("todo-list").children_indexed(children))
 }

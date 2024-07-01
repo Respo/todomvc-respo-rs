@@ -1,11 +1,14 @@
 use serde::{Deserialize, Serialize};
 
-use respo::{MaybeState, RespoAction, RespoStore, StatesTree};
+use respo::{
+  states_tree::{RespoStatesTree, RespoUpdateState},
+  RespoAction, RespoStore,
+};
 
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Default)]
 pub struct Store {
   pub todos: Vec<Task>,
-  pub states: StatesTree,
+  pub states: RespoStatesTree,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -15,9 +18,9 @@ pub struct Task {
   pub title: String,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug)]
 pub enum ActionOp {
-  StatesChange(Vec<String>, MaybeState),
+  StatesChange(RespoUpdateState),
   AddTodo(String, String),
   ToggleAll,
   Toggle(String),
@@ -29,22 +32,37 @@ pub enum ActionOp {
 }
 
 impl RespoAction for ActionOp {
-  fn wrap_states_action(cursor: &[String], a: MaybeState) -> Self {
-    Self::StatesChange(cursor.to_vec(), a)
+  type Intent = ();
+  fn build_states_action(cursor: &[std::rc::Rc<str>], a: Option<respo::states_tree::RespoStateBranch>) -> Self
+  where
+    Self: Sized,
+  {
+    // val is a backup value from DynEq to Json Value
+    let val = match &a {
+      None => None,
+      Some(v) => v.0.as_ref().backup(),
+    };
+    Self::states_action(RespoUpdateState {
+      cursor: cursor.to_vec(),
+      data: a,
+      backup: val,
+    })
+  }
+
+  fn states_action(a: respo::states_tree::RespoUpdateState) -> Self {
+    Self::StatesChange(a)
   }
 }
 
 impl RespoStore for Store {
   type Action = ActionOp;
 
-  fn get_states(&self) -> StatesTree {
-    self.states.to_owned()
+  fn get_states(&mut self) -> &mut RespoStatesTree {
+    &mut self.states
   }
   fn update(&mut self, op: Self::Action) -> Result<(), String> {
     match op {
-      ActionOp::StatesChange(path, new_state) => {
-        self.states.set_in_mut(&path, new_state);
-      }
+      ActionOp::StatesChange(a) => self.update_states(a),
       ActionOp::AddTodo(id, content) => self.todos.push(Task {
         id,
         title: content,
@@ -84,7 +102,7 @@ impl RespoStore for Store {
         let mut found = false;
         for task in &mut self.todos {
           if task.id == id {
-            task.title = content.to_owned();
+            content.clone_into(&mut task.title);
             found = true;
           }
         }
@@ -97,6 +115,17 @@ impl RespoStore for Store {
       }
     }
     Ok(())
+  }
+
+  fn to_string(&self) -> String {
+    serde_json::to_string(&self).expect("to json")
+  }
+
+  fn try_from_string(s: &str) -> Result<Self, String>
+  where
+    Self: Sized,
+  {
+    serde_json::from_str(s).map_err(|e| format!("parse store: {}", e))
   }
 }
 

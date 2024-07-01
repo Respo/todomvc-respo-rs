@@ -6,15 +6,15 @@ mod store;
 mod task;
 mod todolist;
 
-use std::cell::{Ref, RefCell, RefMut};
+use std::cell::{Ref, RefCell};
+use std::panic;
 use std::rc::Rc;
-use std::{panic, vec};
 
 use container::comp_container;
 use web_sys::Node;
 
-use respo::{util::query_select_node, StatesTree};
-use respo::{MemoCache, RespoApp, RespoNode, RespoStore};
+use respo::util::query_select_node;
+use respo::{RespoAction, RespoApp, RespoNode, RespoStore};
 
 pub use store::ActionOp;
 use store::*;
@@ -22,35 +22,35 @@ use store::*;
 struct App {
   store: Rc<RefCell<Store>>,
   mount_target: Node,
-  memo_caches: MemoCache<RespoNode<ActionOp>>,
 }
 
 impl RespoApp for App {
   type Model = Store;
-  type Action = ActionOp;
 
-  fn get_store(&self) -> Rc<RefCell<Self::Model>> {
-    self.store.clone()
+  fn get_store(&self) -> &Rc<RefCell<Self::Model>> {
+    &self.store
   }
   fn get_mount_target(&self) -> &web_sys::Node {
     &self.mount_target
   }
-  fn get_memo_caches(&self) -> MemoCache<RespoNode<Self::Action>> {
-    self.memo_caches.to_owned()
-  }
+
   fn get_loop_delay() -> Option<i32> {
     Some(80)
   }
 
-  fn dispatch(store: &mut RefMut<Self::Model>, op: Self::Action) -> Result<(), String> {
+  fn dispatch(store_to_action: Rc<RefCell<Self::Model>>, op: <Self::Model as RespoStore>::Action) -> Result<(), String> {
     // respo::util::log!("dispatch action {:?}", op);
-    store.update(op)
+    if let Some(_intent) = op.detect_intent() {
+      todo!("not intent added")
+    } else {
+      let mut store = store_to_action.borrow_mut();
+      store.update(op)
+    }
   }
 
-  fn view(store: Ref<Self::Model>, memo_caches: MemoCache<RespoNode<Self::Action>>) -> Result<RespoNode<Self::Action>, String> {
+  fn view(store: Ref<Self::Model>) -> Result<RespoNode<<Self::Model as RespoStore>::Action>, String> {
     // util::log!("global store: {:?}", store);
-
-    comp_container(memo_caches, &store)
+    comp_container(&store)
   }
 }
 
@@ -60,11 +60,7 @@ pub fn main() -> Result<(), String> {
 
   let app = App {
     mount_target: query_select_node(".app").expect("mount target"),
-    store: Rc::new(RefCell::new(Store {
-      states: StatesTree::default(),
-      todos: vec![],
-    })),
-    memo_caches: MemoCache::default(),
+    store: Rc::new(RefCell::new(Store::default())),
   };
 
   app.render_loop().expect("app render");
