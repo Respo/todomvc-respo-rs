@@ -1,24 +1,54 @@
 use std::{fmt::Debug, rc::Rc};
+use web_sys::wasm_bindgen::JsCast;
+
+use respo::{
+  states_tree::{RespoState, RespoStatesTree},
+  RespoComponent, RespoEffect,
+};
+use respo_state_derive::RespoState;
 
 use serde::{Deserialize, Serialize};
 
 use respo::{
-  button, div, input, label, li, static_styles, CssColor, CssSize, DispatchFn, MemoCache, RespoEffectType, RespoEvent, RespoNode,
-  RespoStyle, StatesTree,
+  button,
+  css::{CssColor, CssSize, RespoStyle},
+  div, input, label, li, static_styles, DispatchFn, RespoEvent, RespoNode,
 };
-use wasm_bindgen::JsCast;
+
 use web_sys::{Element, HtmlElement};
 
 use super::store::*;
 
-#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+#[derive(Debug, Clone, Default, Deserialize, Serialize, PartialEq, Eq, RespoState)]
 struct TaskState {
   edit_text: String,
 }
 
+#[derive(Debug, Clone, Default, Deserialize, Serialize, PartialEq, Eq, RespoState)]
+struct EditingState {
+  editing: bool,
+}
+
+impl RespoEffect for EditingState {
+  fn updated(&self, el: &web_sys::Node) -> Result<(), String> {
+    if self.editing {
+      el.dyn_ref::<Element>()
+        .unwrap()
+        .query_selector(".edit")
+        .unwrap()
+        .unwrap()
+        .dyn_ref::<HtmlElement>()
+        .unwrap()
+        .focus()
+        .expect("focus");
+    }
+
+    Ok(())
+  }
+}
+
 pub fn comp_task(
-  _memo_caches: MemoCache<RespoNode<ActionOp>>,
-  states: &StatesTree,
+  states: RespoStatesTree,
   task: &Task,
   editing: bool,
   on_edit: impl Fn(String, DispatchFn<ActionOp>) -> Result<(), String> + 'static,
@@ -38,7 +68,7 @@ pub fn comp_task(
 
   let cursor = states.path();
   let cursor2 = cursor.clone();
-  let state: TaskState = states.data.cast_or_default()?;
+  let state = states.cast_branch::<TaskState>();
   let state2 = state.clone();
 
   let on_toggle = move |_e, dispatch: DispatchFn<_>| -> Result<(), String> {
@@ -95,15 +125,15 @@ pub fn comp_task(
   };
 
   Ok(
-    RespoNode::new_component(
+    RespoComponent::named(
       "task",
       li()
         .toggle_class("editing", editing)
         .toggle_class("completed", task.completed)
-        .children([
+        .elements([
           div()
             .class("view")
-            .children([
+            .elements([
               input()
                 .class("toggle")
                 .attribute("type", "checkbox")
@@ -119,30 +149,15 @@ pub fn comp_task(
             .to_owned(),
           input()
             .class("edit")
-            .attribute("value", state.edit_text)
+            .attribute("value", state.edit_text.to_owned())
             .on_input(handle_change)
             .on_keydown(handle_keydown)
             .on_named_event("blur", handle_blur)
             .to_owned(),
-        ])
-        .to_owned(),
+        ]),
     )
-    .effect(&[editing], move |args, effect_type, el| -> Result<(), String> {
-      let is_editing: bool = args[0].cast_into()?;
-      if is_editing && effect_type == RespoEffectType::Updated {
-        el.dyn_ref::<Element>()
-          .unwrap()
-          .query_selector(".edit")
-          .unwrap()
-          .unwrap()
-          .dyn_ref::<HtmlElement>()
-          .unwrap()
-          .focus()
-          .expect("focus");
-      }
-      Ok(())
-    })
-    .share_with_ref(),
+    .effect(EditingState { editing })
+    .to_node(),
   )
 }
 

@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::store::{ActionOp, TodoFilter};
 
-use respo::{a, button, footer, li, span, ul, DispatchFn, RespoEvent, RespoNode};
+use respo::{a, button, footer, li, span, ul, DispatchFn, RespoElement, RespoEvent, RespoNode};
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 struct PanelState {
@@ -37,19 +37,19 @@ pub fn comp_footer(
     "footer",
     footer()
       .class("footer")
-      .children([
+      .elements([
         span()
           .class("todo-count")
-          .children([
-            RespoNode::new_tag("strong").inner_text(count.to_string()).to_owned(),
+          .elements([
+            RespoElement::named("strong").inner_text(count.to_string()).to_owned(),
             span().inner_text(" items left").to_owned(),
           ])
           .to_owned(),
         ul()
           .class("filters")
-          .children([
+          .elements([
             li()
-              .children([a()
+              .elements([a()
                 .inner_text("All")
                 .toggle_class("selected", now_showing == TodoFilter::All)
                 .on_click(move |_e, d| {
@@ -60,7 +60,7 @@ pub fn comp_footer(
                 .to_owned()])
               .to_owned(),
             li()
-              .children([a()
+              .elements([a()
                 .inner_text("Active")
                 .toggle_class("selected", now_showing == TodoFilter::Active)
                 .on_click(move |_e, d| {
@@ -71,7 +71,7 @@ pub fn comp_footer(
                 .to_owned()])
               .to_owned(),
             li()
-              .children([a()
+              .elements([a()
                 .inner_text("Completed")
                 .toggle_class("selected", now_showing == TodoFilter::Completed)
                 .on_click(move |_e, d| {
@@ -85,6 +85,6 @@ pub fn comp_footer(
           .to_owned(),
         clear_button,
       ])
-      .to_owned(),
+      .to_node(),
   ))
 }
